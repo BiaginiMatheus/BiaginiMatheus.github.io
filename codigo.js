@@ -28,7 +28,7 @@ window.onload = function(){
 
     colocarComida();
     document.addEventListener("keyup", controlarCobrinha);
-    setInterval(atualizacao, 200)
+    setInterval(atualizacao, 100)
 }
 
 function atualizacao(){
