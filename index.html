@@ -1,14 +1,270 @@
 <!DOCTYPE html>
-<html> 
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport", content="width=device-width, initial-scale=1.0">
-        <title>Jogo da Cobrinha!</title>
-        <link rel="stylesheet" href="stilo.css">
-        <script src="codigo.js"></script>
-    </head>
-    <body>
-        <h1>Cobrinha</h1>
-        <canvas id="tela"></canvas>
-    </body>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Biagini – Epicycles + Game of Life</title>
+  <script src="https://cdn.jsdelivr.net/npm/p5@1.9.3/lib/p5.min.js"></script>
+  <style>
+    html, body { margin: 0; height: 100%; background: #0b0f14; color: #cbd5e1; }
+  </style>
+</head>
+<body>
+  <script>
+    // ========= CONFIG =========
+    const WORD = 'Biagini';
+    const TARGET_POINTS = 1400;
+    const MAX_HARMONICS_DEFAULT = 200;
+    const STROKE_WEIGHT = 2;
+    const SHOW_CIRCLES = true; // agora visível
+
+    let font;
+    let complexSignal=[];
+    let spectrum=[];
+    let trace=[];
+    let t = 0;
+    let playing = true;
+    let maxHarmonics = MAX_HARMONICS_DEFAULT;
+
+    let finished = false;
+    let startGame = false; // controla delay
+
+    // Game of Life vars
+    let cellSize = 6;
+    let cols, rows;
+    let grid;
+    let nextGrid;
+
+    function preload(){
+      font = loadFont('https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxP.ttf');
+    }
+
+    function setup(){
+      createCanvas(windowWidth, windowHeight);
+      pixelDensity(1);
+      prepareSignal();
+      spectrum = dft(complexSignal);
+      background('#0b0f14');
+    }
+
+    function windowResized(){
+      resizeCanvas(windowWidth, windowHeight);
+      if(startGame){
+        initGameOfLife();
+      }
+    }
+
+    function draw(){
+      if(!finished){
+        drawFourier();
+      } else if(!startGame){
+        // Mostra último frame de Fourier por um tempo
+        if(frameCount % 60 === 0){
+          // depois de ~2 segundos inicia o jogo da vida
+          setTimeout(()=>{ startGame = true; initGameOfLife(); }, 2000);
+        }
+      } else {
+        drawGameOfLife();
+      }
+    }
+
+    function drawFourier(){
+      background(11,15,20, 20);
+      translate(width/2, height/2);
+
+      const tip = drawEpicycles(spectrum, t, min(maxHarmonics, spectrum.length));
+
+      trace.unshift(createVector(tip.x, tip.y));
+      stroke(240);
+      strokeWeight(STROKE_WEIGHT);
+      noFill();
+      beginShape();
+      for(let i=0; i<trace.length; i++){
+        vertex(trace[i].x, trace[i].y);
+      }
+      endShape();
+
+      const dt = TWO_PI / complexSignal.length;
+      if(playing){
+        t += dt;
+        if(t > TWO_PI){
+          finished = true;
+        }
+      }
+    }
+
+    // ======== Game of Life ========
+    function initGameOfLife(){
+      cols = floor(width / cellSize);
+      rows = floor(height / cellSize);
+      grid = make2DArray(cols, rows);
+      nextGrid = make2DArray(cols, rows);
+
+      let gfx = createGraphics(width, height);
+      gfx.pixelDensity(1);
+      gfx.background(0);
+      gfx.fill(255);
+      gfx.textAlign(CENTER, CENTER);
+      gfx.textFont(font);
+      gfx.textSize(min(width, height) * 0.25);
+      gfx.text(WORD, width/2, height/2);
+      gfx.loadPixels();
+
+      for(let y=0;y<rows;y++){
+        for(let x=0;x<cols;x++){
+          let px = x*cellSize + cellSize/2;
+          let py = y*cellSize + cellSize/2;
+          let idx = 4*(floor(px) + floor(py)*gfx.width);
+          let bright = gfx.pixels[idx];
+          grid[x][y] = bright>128 ? 1 : 0;
+        }
+      }
+    }
+
+    function drawGameOfLife(){
+      background(11,15,20);
+      for(let y=0;y<rows;y++){
+        for(let x=0;x<cols;x++){
+          if(grid[x][y]===1){
+            fill(200);
+            noStroke();
+            rect(x*cellSize, y*cellSize, cellSize, cellSize);
+          }
+        }
+      }
+      computeNextGen();
+    }
+
+    function computeNextGen(){
+      for(let x=0;x<cols;x++){
+        for(let y=0;y<rows;y++){
+          let state = grid[x][y];
+          let neighbors = countNeighbors(grid, x, y);
+          if(state===0 && neighbors===3){
+            nextGrid[x][y]=1;
+          } else if(state===1 && (neighbors<2 || neighbors>3)){
+            nextGrid[x][y]=0;
+          } else {
+            nextGrid[x][y]=state;
+          }
+        }
+      }
+      let temp = grid;
+      grid = nextGrid;
+      nextGrid = temp;
+    }
+
+    function countNeighbors(grid,x,y){
+      let sum=0;
+      for(let i=-1;i<=1;i++){
+        for(let j=-1;j<=1;j++){
+          if(i===0 && j===0) continue;
+          let col=(x+i+cols)%cols;
+          let row=(y+j+rows)%rows;
+          sum += grid[col][row];
+        }
+      }
+      return sum;
+    }
+
+    function make2DArray(cols,rows){
+      let arr=new Array(cols);
+      for(let i=0;i<cols;i++){
+        arr[i]=new Array(rows).fill(0);
+      }
+      return arr;
+    }
+
+    // ============= Fourier =============
+    function prepareSignal(){
+      const fontSize = min(width, height) * 0.2;
+      let pts = font.textToPoints(WORD, 0, 0, fontSize, {
+        sampleFactor: 0.125,
+        simplifyThreshold: 0
+      });
+
+      const bounds = font.textBounds(WORD, 0, 0, fontSize);
+      const offsetX = - (bounds.x + bounds.w/2);
+      const offsetY = - (bounds.y + bounds.h/2);
+
+      pts = pts.map(p => ({x: p.x + offsetX, y: p.y + offsetY}));
+
+      let dists = [0];
+      let totalLen = 0;
+      for(let i=1;i<pts.length;i++){
+        const d = dist(pts[i-1].x, pts[i-1].y, pts[i].x, pts[i].y);
+        totalLen += d; dists.push(totalLen);
+      }
+      totalLen += dist(pts[pts.length-1].x, pts[pts.length-1].y, pts[0].x, pts[0].y);
+
+      function atLength(L){
+        L = ((L % totalLen) + totalLen) % totalLen;
+        let i = 1;
+        while(i < dists.length && dists[i] < L) i++;
+        let a = i-1;
+        let b = (i < pts.length)? i : 0;
+        let La = dists[a];
+        let Lb = (i < dists.length)? dists[i] : totalLen;
+        let segLen = (Lb - La);
+        let t = segLen === 0 ? 0 : (L - La)/segLen;
+        const x = lerp(pts[a].x, pts[b].x, t);
+        const y = lerp(pts[a].y, pts[b].y, t);
+        return {x,y};
+      }
+
+      const N = TARGET_POINTS;
+      complexSignal = [];
+      for(let i=0;i<N;i++){
+        const p = atLength(i*totalLen/N);
+        const scale = min(width, height) * 0.35 / (bounds.h/2);
+        complexSignal.push({re: p.x*scale, im: p.y*scale});
+      }
+    }
+
+    function dft(signal){
+      const N = signal.length;
+      let out = [];
+      for(let k=0; k<N; k++){
+        let sumRe = 0;
+        let sumIm = 0;
+        for(let n=0; n<N; n++){
+          const phi = -2 * Math.PI * k * n / N;
+          const cosP = Math.cos(phi);
+          const sinP = Math.sin(phi);
+          const re = signal[n].re;
+          const im = signal[n].im;
+          sumRe += re * cosP - im * sinP;
+          sumIm += re * sinP + im * cosP;
+        }
+        sumRe /= N; sumIm /= N;
+        const freq = (k <= N/2) ? k : k - N;
+        const amp = Math.hypot(sumRe, sumIm);
+        const phase = Math.atan2(sumIm, sumRe);
+        out.push({freq, re: sumRe, im: sumIm, amp, phase});
+      }
+      out.sort((a,b) => b.amp - a.amp);
+      return out;
+    }
+
+    function drawEpicycles(spec, time, limit){
+      let x = 0, y = 0;
+      for(let i=0; i<limit; i++){
+        const c = spec[i];
+        const prevX = x, prevY = y;
+        const w = c.freq * 1;
+        const angle = c.phase + w * time;
+        x += c.amp * Math.cos(angle);
+        y += c.amp * Math.sin(angle);
+
+        if(SHOW_CIRCLES){
+          noFill(); stroke(80);
+          circle(prevX, prevY, c.amp*2);
+          stroke(160);
+          line(prevX, prevY, x, y);
+        }
+      }
+      return {x, y};
+    }
+  </script>
+</body>
 </html>
