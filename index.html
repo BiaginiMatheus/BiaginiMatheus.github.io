@@ -7,19 +7,20 @@
   <script src="https://cdn.jsdelivr.net/npm/p5@1.9.3/lib/p5.min.js"></script>
   <style>
     html, body { margin: 0; height: 100%; background: #0b0f14; color: #cbd5e1; }
-    #controls { position: absolute; top: 10px; left: 10px; z-index: 10; }
-    button { padding: 6px 12px; border-radius: 6px; border: none; cursor: pointer; }
+    #controls { position: absolute; top: 10px; left: 10px; z-index: 10; display:flex; gap:10px; }
+    button { font-size: 32px; padding: 12px 18px; border-radius: 12px; border: none; cursor: pointer; }
   </style>
 </head>
 <body>
   <div id="controls" style="display:none">
-    <button id="playBtn">Pause</button>
+    <button id="playBtn">⏸️</button>
+    <button id="resetBtn">🔄</button>
   </div>
   <script>
     // ========= CONFIG =========
     const WORD = 'Biagini';
-    const TARGET_POINTS = 1400;
-    const MAX_HARMONICS_DEFAULT = 200;
+    const TARGET_POINTS = 1000; // smaller to fit
+    const MAX_HARMONICS_DEFAULT = 150;
     const STROKE_WEIGHT = 2;
     const SHOW_CIRCLES = true;
 
@@ -37,10 +38,11 @@
     let editTimerStarted = false;
 
     // Game of Life vars
-    let cellSize = 6;
+    let cellSize = 15; // bigger squares, fewer cells
     let cols, rows;
     let grid;
     let nextGrid;
+    let initialGrid;
 
     function preload(){
       font = loadFont('https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxP.ttf');
@@ -55,14 +57,19 @@
 
       document.getElementById("playBtn").addEventListener("click", ()=>{
         playing = !playing;
-        document.getElementById("playBtn").innerText = playing ? "Pause" : "Play";
+        document.getElementById("playBtn").innerText = playing ? "⏸️" : "▶️";
+      });
+      document.getElementById("resetBtn").addEventListener("click", ()=>{
+        playing = false;
+        initGameOfLife(true);
+        document.getElementById("playBtn").innerText = "▶️";
       });
     }
 
     function windowResized(){
       resizeCanvas(windowWidth, windowHeight);
       if(startGame){
-        initGameOfLife();
+        initGameOfLife(true);
       }
     }
 
@@ -71,7 +78,7 @@
         drawFourier();
       } else if(!startGame){
         if(frameCount % 60 === 0){
-          setTimeout(()=>{ startGame = true; initGameOfLife(); }, 2000);
+          setTimeout(()=>{ startGame = true; initGameOfLife(true); }, 2000);
         }
       } else {
         drawGameOfLife();
@@ -79,14 +86,14 @@
           editTimerStarted = true;
           setTimeout(()=>{
             editable = true;
-            document.getElementById("controls").style.display = "block";
+            document.getElementById("controls").style.display = "flex";
           }, 3000);
         }
       }
     }
 
     function drawFourier(){
-      background(11,15,20, 20);
+      background(11,15,20); // no staining
       translate(width/2, height/2);
 
       const tip = drawEpicycles(spectrum, t, min(maxHarmonics, spectrum.length));
@@ -111,7 +118,7 @@
     }
 
     // ======== Game of Life ========
-    function initGameOfLife(){
+    function initGameOfLife(reset=false){
       cols = floor(width / cellSize);
       rows = floor(height / cellSize);
       grid = make2DArray(cols, rows);
@@ -123,7 +130,7 @@
       gfx.fill(255);
       gfx.textAlign(CENTER, CENTER);
       gfx.textFont(font);
-      gfx.textSize(min(width, height) * 0.25);
+      gfx.textSize(min(width, height) * 0.15);
       gfx.text(WORD, width/2, height/2);
       gfx.loadPixels();
 
@@ -136,17 +143,23 @@
           grid[x][y] = bright>128 ? 1 : 0;
         }
       }
+      if(reset){
+        initialGrid = grid.map(col=>[...col]);
+      }
     }
 
     function drawGameOfLife(){
       background(11,15,20);
+      stroke(60);
+      strokeWeight(1);
       for(let y=0;y<rows;y++){
         for(let x=0;x<cols;x++){
           if(grid[x][y]===1){
             fill(200);
-            noStroke();
-            rect(x*cellSize, y*cellSize, cellSize, cellSize);
+          } else {
+            noFill();
           }
+          rect(x*cellSize, y*cellSize, cellSize, cellSize);
         }
       }
       if(playing){
@@ -210,9 +223,9 @@
 
     // ============= Fourier =============
     function prepareSignal(){
-      const fontSize = min(width, height) * 0.2;
+      const fontSize = min(width, height) * 0.15; // smaller scale to fit
       let pts = font.textToPoints(WORD, 0, 0, fontSize, {
-        sampleFactor: 0.125,
+        sampleFactor: 0.1,
         simplifyThreshold: 0
       });
 
@@ -249,7 +262,7 @@
       complexSignal = [];
       for(let i=0;i<N;i++){
         const p = atLength(i*totalLen/N);
-        const scale = min(width, height) * 0.35 / (bounds.h/2);
+        const scale = min(width, height) * 0.25 / (bounds.h/2);
         complexSignal.push({re: p.x*scale, im: p.y*scale});
       }
     }
