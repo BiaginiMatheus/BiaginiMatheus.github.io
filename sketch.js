@@ -1,12 +1,30 @@
 let fourier;
+let gameOfLife;
 let path = [];
 let time = 0;
+
+let middleScreenX;
+let middleScreenY;
+
+let cols;
+let rows;
+
+let state;
 
 function setup() {
     createCanvas(windowWidth, windowHeight);
 
-    const pathPoints = svgPathToPoints();
-    fourier = discreteFourierTransform(pathPoints);
+    state = 'start';
+
+    middleScreenX = windowWidth / 2;
+    middleScreenY = windowHeight / 2;
+
+    const svgPathPoints = svgPathToPoints();
+    fourier = discreteFourierTransform(svgPathPoints);
+
+    cols = Math.ceil(windowWidth / gameOfLifeGridSize);
+    rows = Math.ceil(windowHeight / gameOfLifeGridSize);
+    gameOfLife = make2DArray(cols, rows);
 
     frameRate(frameRateValue)
 }
@@ -14,18 +32,30 @@ function setup() {
 function draw() {
     background(backgroundColor);
 
-    const middleScreenX = windowWidth / 2;
-    const middleScreenY = windowHeight / 2;
+    if(state === 'start' || state === 'transition') {
+        let v = drawCircles(middleScreenX, middleScreenY, fourier);
+        path.unshift(v);
+        drawPath(path);
 
-    let v = drawCircles(middleScreenX, middleScreenY, fourier);
-    path.unshift(v);
-    drawPath(path);
+        const dt = 2 * Math.PI / fourier.length;
+        time += dt;
+    }
 
-    const dt = 2 * Math.PI / fourier.length;
-    time += dt;
-
-    if(time > numberOfDrawingCycles * 2 * Math.PI) {
-        time = 0;
+    if(time > fullDrawingCycle && time < numberOfDrawingCycles * fullDrawingCycle) {
+        state = 'transition'
+        drawGrid(gameOfLife, 1, time);
+    }
+    if(time > numberOfDrawingCycles * fullDrawingCycle && state === 'transition') {
+        state = 'gameOfLife'
         path = [];
+        gameOfLife = initializeGameOfLife(gameOfLife);
+    }
+
+    if(state === 'gameOfLife') {
+        drawGrid(gameOfLife,4);
+        time++;
+        if(time > maxTimeInTransition + delayBeforeStartingGameOfLife) {
+            gameOfLife = playGameOfLife(gameOfLife);
+        }
     }
 }
