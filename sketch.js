@@ -1,5 +1,10 @@
+let fourierY;
+
 function setup() {
     createCanvas(windowWidth, windowHeight);
+    const pathPoints = svgPathToPoints();
+    const signalY = pathPoints.map(p => p.y);
+    fourierY = new discreteFourierTransform(signalY);
 }
 
 //time is theta (angle)
@@ -22,16 +27,16 @@ function draw() {
 
     let x = 0;
     let y= 0;
-    for (let i = 0; i < numberOfCircles; i++) {
+    for (let i = 0; i < fourierY.length; i++) {
         // Save the previous position
         let previousX = x;
         let previousY = y;
 
-        // n is the harmonic number (1, 3, 5, 7, ...)
-        let n = i * 2 + 1;
-        let radius = circleBaseRadius * (4 / (n * PI));
-        x += radius * cos(n * time);
-        y += radius * sin(n * time);
+        let freq = fourierY[i].freq;
+        let radius =  fourierY[i].amp;
+        let phase = fourierY[i].phase;
+        x += radius * Math.cos(freq * time + phase + Math.PI / 2);
+        y += radius * Math.sin(freq * time + phase + Math.PI / 2);
 
         // Draw the circles
         stroke(whiteColor, 100);
@@ -43,7 +48,6 @@ function draw() {
         stroke(whiteColor);
         line(previousX, previousY, x, y);
         circle(x, y, dotRadius);
-
     }
     // Add the y value of the last circle to the wave array
     wave.unshift(y);
@@ -60,8 +64,8 @@ function draw() {
     }
     endShape();
 
-    // Increment time/angle for rotation
-    time += 0.02;
+    const dt = 2 * Math.PI / fourierY.length;
+    time += dt;
 
     // Limit the length of the wave array
     if (wave.length > middleScreenX - waveDrawingOffset) {
