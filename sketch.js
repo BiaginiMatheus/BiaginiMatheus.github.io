@@ -1,5 +1,6 @@
 let fourierX;
 let fourierY;
+const frameRateValue = 20;
 
 function setup() {
     createCanvas(windowWidth, windowHeight);
@@ -20,18 +21,15 @@ function setup() {
     // Sort circles by amplitude
     fourierX.sort((a, b) => b.amp - a.amp)
     fourierY.sort((a, b) => b.amp - a.amp);
-    frameRate(20)
+    frameRate(frameRateValue)
 }
 
 //time is theta (angle)
 let time = 0;
 let path = [];
 
-const circleBaseRadius = 150;
 const dotRadius = 2;
-const numberOfCircles = 5;
 const backgroundColor = 42;
-const waveDrawingOffset = circleBaseRadius + 100;
 const whiteColor = 255;
 
 function drawEpiCycles(x, y, rotation, fourier) {
