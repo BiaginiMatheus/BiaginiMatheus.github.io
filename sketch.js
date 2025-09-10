@@ -8,11 +8,17 @@ let wave = [];
 
 const circleBaseRadius = 150;
 const dotRadius = 2;
-const numberOfCircles = 50;
+const numberOfCircles = 5;
+const backgroundColor = 42;
+const waveDrawingOffset = circleBaseRadius + 100;
+const whiteColor = 255;
 
 function draw() {
-    background(42);
-    translate(width / 2, height / 2);
+    const middleScreenX = windowWidth / 2;
+    const middleScreenY = windowHeight / 2;
+
+    background(backgroundColor);
+    translate(middleScreenX, middleScreenY);
 
     let x = 0;
     let y= 0;
@@ -28,14 +34,13 @@ function draw() {
         y += radius * sin(n * time);
 
         // Draw the circles
-        stroke(255, 100);
+        stroke(whiteColor, 100);
         noFill();
         circle(previousX, previousY, radius * 2);
 
         // Draw the radius line from the center of the circle
         // to the center of the next circle
-        fill(255);
-        stroke(255);
+        stroke(whiteColor);
         line(previousX, previousY, x, y);
         circle(x, y, dotRadius);
 
@@ -44,8 +49,8 @@ function draw() {
     wave.unshift(y);
 
     // Line from the last circle to the wave
-    translate(200, 0);
-    line(x - 200, y, 0, wave[0]);
+    translate(waveDrawingOffset, 0);
+    line(x - waveDrawingOffset, y, 0, wave[0]);
 
     // Draw the wave
     beginShape();
@@ -59,7 +64,7 @@ function draw() {
     time += 0.02;
 
     // Limit the length of the wave array
-    if (wave.length > width / 2 - 200) {
+    if (wave.length > middleScreenX - waveDrawingOffset) {
         wave.pop();
     }
 }
