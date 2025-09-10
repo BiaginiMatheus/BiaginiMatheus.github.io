@@ -27,11 +27,8 @@ function svgPathToPoints() {
     let match;
     const points = [];
     while ((match = pointsRegex.exec(svgPath)) !== null) {
-        console.log('match', match);
-        points.push({
-            x: parseFloat(match[xIndex])/sizeDivider,
-            y: parseFloat(match[yIndex])/sizeDivider
-        });
+        const c = new Complex(parseFloat(match[xIndex])/sizeDivider,parseFloat(match[yIndex])/sizeDivider)
+        points.push(c);
     }
 
     return points;

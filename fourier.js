@@ -5,25 +5,20 @@ function discreteFourierTransform(signal) {
     const N = signal.length;
     const result = [];
     for (let k = 0; k < N; k++) {
-        let real = 0;
-        let imag = 0;
+        let sum = new Complex(0,0);
         for (let n = 0; n < N; n++) {
             const angle = (2 * Math.PI * k * n) / N;
-            real += signal[n] * Math.cos(angle);
-            imag -= signal[n] * Math.sin(angle);
+            const equation = new Complex(Math.cos(angle), -Math.sin(angle));
+            sum = sum.add(signal[n].multiply(equation));
         }
-        real = real / N;
-        imag = imag / N;
+        sum.real = sum.real / N;
+        sum.imag = sum.imag / N;
         let freq = k;
-        let amp = Math.sqrt(real * real + imag * imag);
-        let phase = Math.atan2(imag, real);
-        result[k] = {real, imag, freq, amp, phase};
+        let amp = Math.sqrt(sum.real * sum.real + sum.imag * sum.imag);
+        let phase = Math.atan2(sum.imag, sum.real);
+        result[k] = {...sum, freq, amp, phase};
     }
+    result.sort((current, previous) => previous.amp - current.amp)
+
     return result;
 }
-// Fourier series -> Square wave
-// https://www.youtube.com/watch?v=Mm2eYfj0SgA&t=1s
-// Fourier transform -> Draw with two axes
-// https://www.youtube.com/watch?v=MY4luNgGfms&t=1s
-// Fourier transform with imaginary numbers
-// https://www.youtube.com/watch?v=7_vKzcgpfvU

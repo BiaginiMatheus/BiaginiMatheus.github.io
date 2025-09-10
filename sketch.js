@@ -1,26 +1,13 @@
-let fourierX;
-let fourierY;
+let fourier;
 const frameRateValue = 20;
 
 function setup() {
     createCanvas(windowWidth, windowHeight);
     const pathPoints = svgPathToPoints();
-    const signalX = pathPoints.map(p => p.x);
-    const signalY = pathPoints.map(p => p.y);
-    // Circle signal
-    // const signalX = [];
-    // const signalY = [];
-    // for(let i = 0; i < 100; i++) {
-    //     const angle = map(i, 0, 100, 0, TWO_PI);
-    //     signalX[i] = 100 * Math.cos(angle);
-    //     signalY[i] = 100 * Math.sin(angle);
-    // }
-    fourierX = discreteFourierTransform(signalX);
-    fourierY = discreteFourierTransform(signalY);
 
-    // Sort circles by amplitude
-    fourierX.sort((a, b) => b.amp - a.amp)
-    fourierY.sort((a, b) => b.amp - a.amp);
+    fourier = discreteFourierTransform(pathPoints);
+    console.log('fourierX', fourier);
+
     frameRate(frameRateValue)
 }
 
@@ -31,9 +18,10 @@ let path = [];
 const dotRadius = 2;
 const backgroundColor = 42;
 const whiteColor = 255;
+const numberOfCycles = 2;
 
 function drawEpiCycles(x, y, rotation, fourier) {
-    for (let i = 0; i < fourier.length; i++) {
+    for (let i = 1; i < fourier.length; i++) {
         // Save the previous position
         let previousX = x;
         let previousY = y;
@@ -63,14 +51,11 @@ function draw() {
 
     background(backgroundColor);
 
-    let vx = drawEpiCycles(middleScreenX, 100, 0, fourierX);
-    let vy = drawEpiCycles(100, middleScreenY, Math.PI/2, fourierY);
-    let v = createVector(vx.x, vy.y);
+    let v = drawEpiCycles(middleScreenX, middleScreenY, 0, fourier);
     path.unshift(v);
 
     // Line from the last circle to the wave
-    line(vx.x, vx.y, v.x, v.y);
-    line(vy.x, vy.y, v.x, v.y);
+    // line(middleScreenX, middleScreenY, v.x, v.y);
 
     // Draw the wave
     beginShape();
@@ -80,10 +65,10 @@ function draw() {
     }
     endShape();
 
-    const dt = 2 * Math.PI / fourierY.length;
+    const dt = 2 * Math.PI / fourier.length;
     time += dt;
 
-    if(time > 2 * Math.PI) {
+    if(time > numberOfCycles * 2 * Math.PI) {
         time = 0;
         path = [];
     }
