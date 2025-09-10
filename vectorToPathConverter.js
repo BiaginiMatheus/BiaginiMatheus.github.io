@@ -15,7 +15,6 @@ const svgString = "<svg \n" +
 
 const xIndex = 2;
 const yIndex = 3;
-const sizeDivider = 2;
 function svgPathToPoints() {
     const pathMatch = svgString.match(/\bd="([^"]+)"/);
     if (!pathMatch) {
@@ -27,7 +26,7 @@ function svgPathToPoints() {
     let match;
     const points = [];
     while ((match = pointsRegex.exec(svgPath)) !== null) {
-        const c = new Complex(parseFloat(match[xIndex])/sizeDivider,parseFloat(match[yIndex])/sizeDivider)
+        const c = new Complex(parseFloat(match[xIndex])/svgSizeDivider,parseFloat(match[yIndex])/svgSizeDivider)
         points.push(c);
     }
 
