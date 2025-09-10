@@ -16,6 +16,11 @@ function setup() {
     // }
     fourierX = discreteFourierTransform(signalX);
     fourierY = discreteFourierTransform(signalY);
+
+    // Sort circles by amplitude
+    fourierX.sort((a, b) => b.amp - a.amp)
+    fourierY.sort((a, b) => b.amp - a.amp);
+    frameRate(20)
 }
 
 //time is theta (angle)
@@ -80,8 +85,8 @@ function draw() {
     const dt = 2 * Math.PI / fourierY.length;
     time += dt;
 
-    // Limit the length of the wave array
-    if (path.length > middleScreenX - waveDrawingOffset) {
-        path.pop();
+    if(time > 2 * Math.PI) {
+        time = 0;
+        path = [];
     }
 }
