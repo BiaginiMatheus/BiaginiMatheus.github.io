@@ -1,15 +1,26 @@
+let fourierX;
 let fourierY;
 
 function setup() {
     createCanvas(windowWidth, windowHeight);
     const pathPoints = svgPathToPoints();
+    const signalX = pathPoints.map(p => p.x);
     const signalY = pathPoints.map(p => p.y);
-    fourierY = new discreteFourierTransform(signalY);
+    // Circle signal
+    // const signalX = [];
+    // const signalY = [];
+    // for(let i = 0; i < 100; i++) {
+    //     const angle = map(i, 0, 100, 0, TWO_PI);
+    //     signalX[i] = 100 * Math.cos(angle);
+    //     signalY[i] = 100 * Math.sin(angle);
+    // }
+    fourierX = discreteFourierTransform(signalX);
+    fourierY = discreteFourierTransform(signalY);
 }
 
 //time is theta (angle)
 let time = 0;
-let wave = [];
+let path = [];
 
 const circleBaseRadius = 150;
 const dotRadius = 2;
@@ -18,25 +29,17 @@ const backgroundColor = 42;
 const waveDrawingOffset = circleBaseRadius + 100;
 const whiteColor = 255;
 
-function draw() {
-    const middleScreenX = windowWidth / 2;
-    const middleScreenY = windowHeight / 2;
-
-    background(backgroundColor);
-    translate(middleScreenX, middleScreenY);
-
-    let x = 0;
-    let y= 0;
-    for (let i = 0; i < fourierY.length; i++) {
+function drawEpiCycles(x, y, rotation, fourier) {
+    for (let i = 0; i < fourier.length; i++) {
         // Save the previous position
         let previousX = x;
         let previousY = y;
 
-        let freq = fourierY[i].freq;
-        let radius =  fourierY[i].amp;
-        let phase = fourierY[i].phase;
-        x += radius * Math.cos(freq * time + phase + Math.PI / 2);
-        y += radius * Math.sin(freq * time + phase + Math.PI / 2);
+        let freq = fourier[i].freq;
+        let radius =  fourier[i].amp;
+        let phase = fourier[i].phase;
+        x += radius * Math.cos(freq * time + phase + rotation);
+        y += radius * Math.sin(freq * time + phase + rotation);
 
         // Draw the circles
         stroke(whiteColor, 100);
@@ -49,18 +52,28 @@ function draw() {
         line(previousX, previousY, x, y);
         circle(x, y, dotRadius);
     }
-    // Add the y value of the last circle to the wave array
-    wave.unshift(y);
+    return createVector(x, y);
+}
+function draw() {
+    const middleScreenX = windowWidth / 2;
+    const middleScreenY = windowHeight / 2;
+
+    background(backgroundColor);
+
+    let vx = drawEpiCycles(middleScreenX, 100, 0, fourierX);
+    let vy = drawEpiCycles(100, middleScreenY, Math.PI/2, fourierY);
+    let v = createVector(vx.x, vy.y);
+    path.unshift(v);
 
     // Line from the last circle to the wave
-    translate(waveDrawingOffset, 0);
-    line(x - waveDrawingOffset, y, 0, wave[0]);
+    line(vx.x, vx.y, v.x, v.y);
+    line(vy.x, vy.y, v.x, v.y);
 
     // Draw the wave
     beginShape();
     noFill();
-    for (let i = 0; i < wave.length; i++) {
-        vertex(i, wave[i]);
+    for (let i = 0; i < path.length; i++) {
+        vertex(path[i].x, path[i].y);
     }
     endShape();
 
@@ -68,7 +81,7 @@ function draw() {
     time += dt;
 
     // Limit the length of the wave array
-    if (wave.length > middleScreenX - waveDrawingOffset) {
-        wave.pop();
+    if (path.length > middleScreenX - waveDrawingOffset) {
+        path.pop();
     }
 }
